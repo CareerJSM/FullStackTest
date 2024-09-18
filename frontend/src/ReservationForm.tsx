@@ -19,12 +19,12 @@ const reservationSchema = z
     owner_name: z.string(),
     owner_email: z.string(),
     owner_phone: z.number().nullable().optional(),
-    reservation_type: z.string(),
+    reservation_type: z.string().min(1, {message: "Reservation type is required"}),
     reservation_date: z
       .string()
       .min(1, { message: "Reservation date is required" }),
   })
-  .superRefine(({ owner_phone, owner_email }, refinementContext) => {
+  .superRefine(({ owner_phone, owner_email, reservation_date }, refinementContext) => {
     if (owner_phone) {
       if (!/^\d{10}$/.test(owner_phone.toString())) {
         return refinementContext.addIssue({
@@ -40,6 +40,17 @@ const reservationSchema = z
           code: z.ZodIssueCode.custom,
           message: "Owner email must be a valid email address",
           path: ["owner_email"],
+        });
+      }
+    }
+    if(reservation_date) {
+      let date = Date.parse(reservation_date);
+      let now = Date.now();
+      if(now > date) {
+        return refinementContext.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please choose date in the future.",
+          path: ["reservation_date"]
         });
       }
     }
@@ -127,7 +138,6 @@ export const ReservationForm = ({
           variant="outlined"
           name="pet_name"
           control={control}
-          required
         />
         <TextField
           fullWidth
@@ -180,7 +190,6 @@ export const ReservationForm = ({
             { value: "training", label: "Training" },
             { value: "grooming", label: "Grooming" },
           ]}
-          isRequired
         />
         <TextField
           label="Reservation Date"
@@ -190,7 +199,6 @@ export const ReservationForm = ({
           variant="outlined"
           name="reservation_date"
           control={control}
-          required
         />
       </Box>
       <Box
